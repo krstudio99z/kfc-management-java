@@ -12,7 +12,7 @@ import javax.swing.table.TableRowSorter;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class ql_mon_an extends javax.swing.JFrame {
+public class ql_mon_an extends javax.swing.JPanel {
 
     private final truy_cap dao = new truy_cap();
     private DefaultTableModel tableModel;
@@ -26,13 +26,12 @@ public class ql_mon_an extends javax.swing.JFrame {
 
     // ===================== LOGIC =====================
     private void init() {
-        setLocationRelativeTo(null);
         tableModel = (DefaultTableModel) tblMonAn.getModel();
         sorter = new TableRowSorter<>(tableModel);
         tblMonAn.setRowSorter(sorter);
         fillTable();
         // Bổ sung giao diện, không sửa xử lý CRUD cũ.
-        KfcTheme.apply(this, "QUẢN LÝ MÓN ĂN");
+        KfcTheme.apply(this);
     }
 
     private void fillTable() {
@@ -51,6 +50,10 @@ public class ql_mon_an extends javax.swing.JFrame {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi truy vấn dữ liệu từ CSDL!");
         }
+    }
+
+    void refreshData() {
+        fillTable();
     }
 
     private mon_an getForm() {
@@ -172,9 +175,6 @@ public class ql_mon_an extends javax.swing.JFrame {
         jScrollPane1 = new javax.swing.JScrollPane();
         tblMonAn = new javax.swing.JTable();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("Quản Lý Món Ăn - KFC");
-
         jLabel1.setText("Mã món:");
         jLabel2.setText("Tên món:");
         jLabel3.setText("Giá:");
@@ -240,8 +240,8 @@ public class ql_mon_an extends javax.swing.JFrame {
         });
         jScrollPane1.setViewportView(tblMonAn);
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
@@ -312,7 +312,6 @@ public class ql_mon_an extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        pack();
     }// </editor-fold>
 
     // ===================== SỰ KIỆN =====================

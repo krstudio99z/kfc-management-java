@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
-public class ql_hoa_don extends javax.swing.JFrame {
+public class ql_hoa_don extends javax.swing.JPanel {
 
     private DefaultTableModel model;
     private final DecimalFormat fmt = new DecimalFormat("#,##0.##");
@@ -26,7 +26,6 @@ public class ql_hoa_don extends javax.swing.JFrame {
 
     // ===================== LOGIC =====================
     private void init() {
-        setLocationRelativeTo(null);
         txtNgay.setText(LocalDate.now().toString());
         model = (DefaultTableModel) bang.getModel();
 
@@ -38,7 +37,7 @@ public class ql_hoa_don extends javax.swing.JFrame {
 
         tai();
         // Bổ sung giao diện, không sửa chức năng hóa đơn và in ấn cũ.
-        KfcTheme.apply(this, "QUẢN LÝ HÓA ĐƠN");
+        KfcTheme.apply(this);
     }
 
     private void tai() {
@@ -67,6 +66,10 @@ public class ql_hoa_don extends javax.swing.JFrame {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Ngày không hợp lệ hoặc lỗi CSDL: " + e.getMessage());
         }
+    }
+
+    void refreshData() {
+        tai();
     }
 
     private void hienChiTiet() {
@@ -156,9 +159,6 @@ public class ql_hoa_don extends javax.swing.JFrame {
         chiTiet = new javax.swing.JTextArea();
         lblTong = new javax.swing.JLabel();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("KFC - Hóa đơn và doanh thu theo ngày");
-
         jLabel1.setText("Ngày (yyyy-MM-dd):");
 
         btnXem.setText("Xem hóa đơn trong ngày");
@@ -220,8 +220,8 @@ public class ql_hoa_don extends javax.swing.JFrame {
         lblTong.setFont(new java.awt.Font("Segoe UI", 1, 17));
         lblTong.setText("Số hóa đơn: 0  |  Tổng tiền: 0 đ");
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
@@ -262,7 +262,6 @@ public class ql_hoa_don extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        pack();
     }// </editor-fold>
 
     // ===================== SỰ KIỆN =====================
