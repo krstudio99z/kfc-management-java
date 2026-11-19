@@ -2,8 +2,11 @@ package kfc.ui;
 
 import kfc.service.PhienQuanLy;
 import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
@@ -14,10 +17,18 @@ import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 import java.net.URL;
 import javax.imageio.ImageIO;
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
 
 public class menu_quan_ly extends javax.swing.JFrame {
+
+    private JPanel pnlWorkspace;
+    private CardLayout workspaceLayout;
+    private ql_mon_an monPanel;
+    private ql_kho khoPanel;
+    private ql_hoa_don hoaDonPanel;
 
     public menu_quan_ly() {
         PhienQuanLy.yeuCauDangNhap();
@@ -27,18 +38,98 @@ public class menu_quan_ly extends javax.swing.JFrame {
 
     // ===================== LOGIC =====================
     private void init() {
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(new Color(248, 247, 245));
+        pnlWorkspace = new JPanel();
+        workspaceLayout = new CardLayout();
+        pnlWorkspace.setLayout(workspaceLayout);
+        pnlWorkspace.setOpaque(false);
+        pnlWorkspace.add(pnlShowcase, "home");
+
+        pnlActions.removeAll();
+        pnlActions.setLayout(new javax.swing.BoxLayout(pnlActions, javax.swing.BoxLayout.Y_AXIS));
+        pnlActions.setBorder(new EmptyBorder(18, 16, 16, 16));
+        pnlActions.setPreferredSize(new Dimension(270, 0));
+        lblMenuTitle.setAlignmentX(LEFT_ALIGNMENT);
+        pnlActions.add(lblMenuTitle);
+        pnlActions.add(Box.createVerticalStrut(16));
+        addNavigationButton(home);
+        pnlActions.add(Box.createVerticalStrut(10));
+        addNavigationButton(mon);
+        pnlActions.add(Box.createVerticalStrut(10));
+        addNavigationButton(kho);
+        pnlActions.add(Box.createVerticalStrut(10));
+        addNavigationButton(hd);
+        pnlActions.add(Box.createVerticalGlue());
+        addNavigationButton(exit);
+
         lblWelcome.setText("Chào mừng quản lý " + PhienQuanLy.taiKhoan() + " đến với hệ thống KFC!");
+        JPanel content = new JPanel(new BorderLayout(16, 0));
+        content.setOpaque(false);
+        content.add(pnlActions, BorderLayout.WEST);
+        content.add(pnlWorkspace, BorderLayout.CENTER);
+
+        JPanel root = new JPanel(new BorderLayout(0, 14));
+        root.setBackground(new Color(248, 247, 245));
+        root.setBorder(new EmptyBorder(16, 16, 16, 16));
+        root.add(pnlHeader, BorderLayout.NORTH);
+        root.add(content, BorderLayout.CENTER);
+        setContentPane(root);
+        setResizable(true);
+        setSize(1400, 900);
+        setMinimumSize(new Dimension(1120, 720));
+        setLocationRelativeTo(null);
+    }
+
+    private void addNavigationButton(JButton button) {
+        button.setAlignmentX(LEFT_ALIGNMENT);
+        button.setPreferredSize(new Dimension(238, 42));
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        pnlActions.add(button);
+    }
+
+    private void showOverview() {
+        workspaceLayout.show(pnlWorkspace, "home");
+        lblTitle.setText("QUẢN LÝ HỆ THỐNG KFC");
+        lblWelcome.setText("Chào mừng quản lý " + PhienQuanLy.taiKhoan() + " đến với hệ thống KFC!");
+    }
+
+    private void showMonAn() {
+        if (monPanel == null) {
+            monPanel = new ql_mon_an();
+            pnlWorkspace.add(monPanel, "mon");
+        } else {
+            monPanel.refreshData();
+        }
+        showSection("mon", "QUẢN LÝ MÓN ĂN");
+    }
+
+    private void showKho() {
+        if (khoPanel == null) {
+            khoPanel = new ql_kho();
+            pnlWorkspace.add(khoPanel, "kho");
+        } else {
+            khoPanel.refreshData();
+        }
+        showSection("kho", "QUẢN LÝ KHO + CÔNG THỨC");
+    }
+
+    private void showHoaDon() {
+        if (hoaDonPanel == null) {
+            hoaDonPanel = new ql_hoa_don();
+            pnlWorkspace.add(hoaDonPanel, "hoadon");
+        } else {
+            hoaDonPanel.refreshData();
+        }
+        showSection("hoadon", "HÓA ĐƠN / DOANH THU");
+    }
+
+    private void showSection(String card, String title) {
+        workspaceLayout.show(pnlWorkspace, card);
+        lblTitle.setText(title);
+        lblWelcome.setText("Đang đăng nhập: " + PhienQuanLy.taiKhoan());
     }
 
     private void dangXuat() {
         PhienQuanLy.dangXuat();
-        for (java.awt.Window w : java.awt.Window.getWindows()) {
-            if (w instanceof ql_mon_an || w instanceof ql_kho || w instanceof ql_hoa_don) {
-                w.dispose();
-            }
-        }
         dispose();
         new dang_nhap().setVisible(true);
     }
@@ -231,6 +322,7 @@ public class menu_quan_ly extends javax.swing.JFrame {
         pnlShowcase = new ManagerShowcasePanel();
         pnlActions = new RoundedPanel(20, Color.WHITE, new Color(235, 232, 228));
         lblMenuTitle = new javax.swing.JLabel();
+        home = new RoundedButton("TỔNG QUAN", new Color(62, 62, 66), new Color(85, 85, 90), 14);
         mon = new RoundedButton("QUẢN LÝ MÓN ĂN", new Color(228, 0, 43), new Color(195, 0, 36), 14);
         kho = new RoundedButton("QUẢN LÝ KHO + CÔNG THỨC", new Color(228, 0, 43), new Color(195, 0, 36), 14);
         hd = new RoundedButton("HÓA ĐƠN / DOANH THU NGÀY", new Color(228, 0, 43), new Color(195, 0, 36), 14);
@@ -238,7 +330,7 @@ public class menu_quan_ly extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("KFC - Menu quản lý");
-        setResizable(false);
+        setResizable(true);
 
         lblTitle.setFont(new java.awt.Font("Segoe UI", 1, 18));
         lblTitle.setForeground(new java.awt.Color(30, 30, 30));
@@ -299,6 +391,13 @@ public class menu_quan_ly extends javax.swing.JFrame {
         lblMenuTitle.setFont(new java.awt.Font("Segoe UI", 1, 14));
         lblMenuTitle.setForeground(new java.awt.Color(55, 55, 55));
         lblMenuTitle.setText("Chức năng quản lý");
+
+        home.setFont(new java.awt.Font("Segoe UI", 1, 13));
+        home.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                showOverview();
+            }
+        });
 
         mon.setFont(new java.awt.Font("Segoe UI", 1, 13));
         mon.setText("QUẢN LÝ MÓN ĂN");
@@ -364,46 +463,19 @@ public class menu_quan_ly extends javax.swing.JFrame {
                 .addContainerGap(14, Short.MAX_VALUE))
         );
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(16, 16, 16)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(pnlHeader, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(pnlShowcase, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(14, 14, 14)
-                        .addComponent(pnlActions, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(16, 16, 16))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(16, 16, 16)
-                .addComponent(pnlHeader, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(14, 14, 14)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(pnlShowcase, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(pnlActions, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(16, Short.MAX_VALUE))
-        );
-
-        pack();
     }// </editor-fold>
 
     // ===================== SỰ KIỆN =====================
     private void monActionPerformed(java.awt.event.ActionEvent evt) {
-        new ql_mon_an().setVisible(true);
+        showMonAn();
     }
 
     private void khoActionPerformed(java.awt.event.ActionEvent evt) {
-        new ql_kho().setVisible(true);
+        showKho();
     }
 
     private void hdActionPerformed(java.awt.event.ActionEvent evt) {
-        new ql_hoa_don().setVisible(true);
+        showHoaDon();
     }
 
     private void exitActionPerformed(java.awt.event.ActionEvent evt) {
@@ -432,6 +504,7 @@ public class menu_quan_ly extends javax.swing.JFrame {
     // Variables declaration - do not modify
     private javax.swing.JButton exit;
     private javax.swing.JButton hd;
+    private javax.swing.JButton home;
     private javax.swing.JButton kho;
     private javax.swing.JLabel lblMenuTitle;
     private javax.swing.JLabel lblTitle;
