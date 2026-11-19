@@ -67,6 +67,8 @@ public class ql_kho extends javax.swing.JFrame {
         });
 
         taiDuLieu();
+        // Bổ sung giao diện, không sửa quản lý tồn kho và công thức cũ.
+        KfcTheme.apply(this, "QUẢN LÝ KHO");
     }
 
     private NguyenLieu layNguyenLieu() {

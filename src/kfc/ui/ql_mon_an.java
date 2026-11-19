@@ -31,6 +31,8 @@ public class ql_mon_an extends javax.swing.JFrame {
         sorter = new TableRowSorter<>(tableModel);
         tblMonAn.setRowSorter(sorter);
         fillTable();
+        // Bổ sung giao diện, không sửa xử lý CRUD cũ.
+        KfcTheme.apply(this, "QUẢN LÝ MÓN ĂN");
     }
 
     private void fillTable() {

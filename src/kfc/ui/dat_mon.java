@@ -63,6 +63,9 @@ public class dat_mon extends javax.swing.JFrame {
         updateTotal();
         // Tu cap nhat menu moi 15 giay neu quan ly nhap kho tren cua so khac.
         new javax.swing.Timer(15000, e -> loadMenu()).start();
+        // CHỈ BỔ SUNG GIAO DIỆN: giữ nguyên bảng, giỏ hàng và logic đặt món.
+        KfcTheme.apply(this, "THỰC ĐƠN KFC");
+        KfcMenuCards.install(tblThucDon, jScrollPane1, this::addToCart);
     }
 
     // Hien ca mon het hang va mon quan ly ngung ban

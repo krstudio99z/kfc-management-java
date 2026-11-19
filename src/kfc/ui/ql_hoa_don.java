@@ -37,6 +37,8 @@ public class ql_hoa_don extends javax.swing.JFrame {
         });
 
         tai();
+        // Bổ sung giao diện, không sửa chức năng hóa đơn và in ấn cũ.
+        KfcTheme.apply(this, "QUẢN LÝ HÓA ĐƠN");
     }
 
     private void tai() {
