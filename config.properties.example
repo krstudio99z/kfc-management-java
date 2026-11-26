@@ -1,0 +1,3 @@
+db.url=jdbc:mysql://localhost:3306/kfc_management?characterEncoding=UTF-8&connectionTimeZone=Asia/Ho_Chi_Minh
+db.user=root
+db.password=

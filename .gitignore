@@ -6,8 +6,9 @@
 # Java
 *.class
 
-# Database configuration
+# Database configuration & Data
 /config.properties
+/data/images/
 
 # IDE
 .idea/

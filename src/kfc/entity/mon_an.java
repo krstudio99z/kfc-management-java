@@ -57,5 +57,5 @@ public class mon_an {
     public void setTrangThai(boolean trangThai) {
         this.trangThai = trangThai;
     }
-    
+
 }
