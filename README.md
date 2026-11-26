@@ -43,10 +43,10 @@ Từ thư mục gốc:
 
 ```bat
 ant clean jar
-java -cp "build\classes;lib\mysql-connector-j-9.3.0.jar" kfc.ui.kfc_app
+java -cp "build\classes;lib\mysql-connector-j-9.3.0.jar" kfc.ui.ql_mon_an
 ```
 
-NetBeans có thể mở trực tiếp project Ant; main class đã được đặt là `kfc.ui.kfc_app`.
+NetBeans có thể mở trực tiếp project Ant; main class giữ theo project KFC được cung cấp là `kfc.ui.ql_mon_an`, màn hình này mở đăng nhập quản lý. `kfc.ui.kfc_app` vẫn có thể chạy riêng nếu cần mở luồng đặt món.
 
 ## Cấu trúc chính
 
