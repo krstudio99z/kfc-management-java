@@ -139,7 +139,8 @@ INSERT INTO `danh_muc` (`TenDM`) VALUES
 ('Combo'),
 ('Gà rán'),
 ('Món kèm'),
-('Nước uống');
+('Nước uống'),
+('Tráng miệng');
 
 -- --------------------------------------------------------
 
@@ -150,7 +151,21 @@ INSERT INTO `danh_muc` (`TenDM`) VALUES
 CREATE TABLE `hoa_don` (
   `MaHD` int(11) NOT NULL,
   `NgayLap` datetime NOT NULL DEFAULT current_timestamp(),
-  `TongTien` decimal(14,2) NOT NULL DEFAULT 0.00
+  `TongTien` decimal(14,2) NOT NULL DEFAULT 0.00,
+  `PhuongThuc` varchar(20) NOT NULL DEFAULT 'TIEN_MAT',
+  `MaKH` int(11) DEFAULT NULL,
+  `HinhThuc` varchar(20) NOT NULL DEFAULT 'MANG_DI',
+  `TrangThai` varchar(20) NOT NULL DEFAULT 'CHO_THANH_TOAN',
+  `TrangThaiTT` varchar(20) NOT NULL DEFAULT 'CHUA_THANH_TOAN',
+  `TienNhan` decimal(16,2) DEFAULT NULL,
+  `TienThua` decimal(16,2) DEFAULT NULL,
+  `MaGiaoDich` varchar(100) DEFAULT NULL,
+  `NgayThanhToan` datetime DEFAULT NULL,
+  `NguoiThu` varchar(80) DEFAULT NULL,
+  `LyDoHuy` varchar(255) DEFAULT NULL,
+  `NgayHuy` datetime DEFAULT NULL,
+  `NguoiHuy` varchar(80) DEFAULT NULL,
+  `HoanKho` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -215,7 +230,9 @@ CREATE TABLE `monan` (
   `TenMon` varchar(100) NOT NULL,
   `Gia` decimal(12,2) NOT NULL,
   `TrangThai` tinyint(1) NOT NULL DEFAULT 1,
-  `ChoPhepBan` tinyint(1) NOT NULL DEFAULT 1
+  `ChoPhepBan` tinyint(1) NOT NULL DEFAULT 1,
+  `DanhMuc` varchar(80) DEFAULT NULL,
+  `HinhAnh` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -233,6 +250,16 @@ INSERT INTO `monan` (`MaMon`, `TenMon`, `Gia`, `TrangThai`, `ChoPhepBan`) VALUES
 ('M008', 'Combo gia đình', 199000.00, 1, 1),
 ('M009', 'Kem Sundae', 22000.00, 1, 1),
 ('M010', 'Gà sốt BBQ', 45000.00, 1, 1);
+
+UPDATE `monan`
+SET `DanhMuc` = CASE
+  WHEN `TenMon` LIKE 'Combo%' THEN 'Combo'
+  WHEN `TenMon` LIKE '%Burger%' THEN 'Burger'
+  WHEN `TenMon` LIKE '%Pepsi%' THEN 'Nước uống'
+  WHEN `TenMon` LIKE '%Kem%' THEN 'Tráng miệng'
+  WHEN `TenMon` LIKE '%Khoai%' THEN 'Món kèm'
+  ELSE 'Gà rán'
+END;
 
 -- --------------------------------------------------------
 
@@ -270,7 +297,8 @@ CREATE TABLE `ql_kho` (
   `MaNL` varchar(20) NOT NULL,
   `TenNL` varchar(100) NOT NULL,
   `DonVi` varchar(20) NOT NULL,
-  `SoLuongTon` decimal(14,3) NOT NULL DEFAULT 0.000
+  `SoLuongTon` decimal(14,3) NOT NULL DEFAULT 0.000,
+  `TonToiThieu` decimal(14,3) NOT NULL DEFAULT 0.000
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -297,7 +325,11 @@ INSERT INTO `ql_kho` (`MaNL`, `TenNL`, `DonVi`, `SoLuongTon`) VALUES
 
 CREATE TABLE `user` (
   `hoten` varchar(50) NOT NULL,
-  `mk` varchar(255) NOT NULL
+  `mk` varchar(255) NOT NULL,
+  `TenNV` varchar(120) DEFAULT NULL,
+  `SDT` varchar(10) DEFAULT NULL,
+  `VaiTro` varchar(20) NOT NULL DEFAULT 'THU_NGAN',
+  `HoatDong` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -351,7 +383,9 @@ ALTER TABLE `danh_muc`
 --
 ALTER TABLE `hoa_don`
   ADD PRIMARY KEY (`MaHD`),
-  ADD KEY `idx_hoadon_ngaylap` (`NgayLap`);
+  ADD KEY `idx_hoadon_ngaylap` (`NgayLap`),
+  ADD KEY `idx_hoadon_khachhang` (`MaKH`),
+  ADD KEY `idx_hoadon_thanhtoan` (`TrangThaiTT`,`NgayThanhToan`);
 
 --
 -- Indexes for table `khach_hang`
@@ -378,7 +412,8 @@ ALTER TABLE `lich_su_kho`
 -- Indexes for table `monan`
 --
 ALTER TABLE `monan`
-  ADD PRIMARY KEY (`MaMon`);
+  ADD PRIMARY KEY (`MaMon`),
+  ADD KEY `idx_monan_danhmuc` (`DanhMuc`);
 
 --
 -- Indexes for table `nha_cung_cap`
@@ -403,7 +438,8 @@ ALTER TABLE `ql_kho`
 -- Indexes for table `user`
 --
 ALTER TABLE `user`
-  ADD UNIQUE KEY `uq_user_hoten` (`hoten`);
+  ADD UNIQUE KEY `uq_user_hoten` (`hoten`),
+  ADD KEY `idx_user_role_active` (`VaiTro`,`HoatDong`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -449,6 +485,73 @@ ALTER TABLE `phieu_nhap`
 ALTER TABLE `chi_tiet_hoa_don`
   ADD CONSTRAINT `chi_tiet_hoa_don_ibfk_1` FOREIGN KEY (`MaHD`) REFERENCES `hoa_don` (`MaHD`) ON DELETE CASCADE,
   ADD CONSTRAINT `chi_tiet_hoa_don_ibfk_2` FOREIGN KEY (`MaMon`) REFERENCES `monan` (`MaMon`);
+
+--
+-- Constraints for the extended business schema
+--
+ALTER TABLE `hoa_don`
+  ADD CONSTRAINT `fk_hoadon_khachhang` FOREIGN KEY (`MaKH`) REFERENCES `khach_hang` (`MaKH`) ON DELETE SET NULL;
+
+ALTER TABLE `monan`
+  ADD CONSTRAINT `fk_monan_danhmuc` FOREIGN KEY (`DanhMuc`) REFERENCES `danh_muc` (`TenDM`) ON DELETE SET NULL;
+
+ALTER TABLE `cong_thuc_mon`
+  ADD CONSTRAINT `fk_congthuc_monan` FOREIGN KEY (`MaMon`) REFERENCES `monan` (`MaMon`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_congthuc_kho` FOREIGN KEY (`MaNL`) REFERENCES `ql_kho` (`MaNL`);
+
+ALTER TABLE `chi_tiet_nguyen_lieu_hoa_don`
+  ADD CONSTRAINT `fk_ctnl_hoadon` FOREIGN KEY (`MaHD`) REFERENCES `hoa_don` (`MaHD`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_ctnl_kho` FOREIGN KEY (`MaNL`) REFERENCES `ql_kho` (`MaNL`);
+
+ALTER TABLE `chi_tiet_phieu_nhap`
+  ADD CONSTRAINT `fk_ctpn_phieunhap` FOREIGN KEY (`MaPN`) REFERENCES `phieu_nhap` (`MaPN`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_ctpn_kho` FOREIGN KEY (`MaNL`) REFERENCES `ql_kho` (`MaNL`);
+
+ALTER TABLE `phieu_nhap`
+  ADD CONSTRAINT `fk_phieunhap_ncc` FOREIGN KEY (`MaNCC`) REFERENCES `nha_cung_cap` (`MaNCC`);
+
+ALTER TABLE `lich_su_don`
+  ADD CONSTRAINT `fk_lich_su_don_hoadon` FOREIGN KEY (`MaHD`) REFERENCES `hoa_don` (`MaHD`) ON DELETE CASCADE;
+
+CREATE TRIGGER `trg_ql_kho_insert`
+AFTER INSERT ON `ql_kho`
+FOR EACH ROW
+  INSERT INTO `lich_su_kho` (`MaNL`, `Truoc`, `Sau`, `NguoiThucHien`, `LyDo`)
+  VALUES (NEW.MaNL, 0, NEW.SoLuongTon, NULLIF(@kfc_actor, ''),
+          COALESCE(NULLIF(@kfc_reason, ''), 'Khởi tạo tồn kho'));
+
+CREATE TRIGGER `trg_ql_kho_update`
+AFTER UPDATE ON `ql_kho`
+FOR EACH ROW
+  INSERT INTO `lich_su_kho` (`MaNL`, `Truoc`, `Sau`, `NguoiThucHien`, `LyDo`)
+  SELECT NEW.MaNL, OLD.SoLuongTon, NEW.SoLuongTon, NULLIF(@kfc_actor, ''),
+         COALESCE(NULLIF(@kfc_reason, ''), 'Cập nhật tồn kho')
+  WHERE NOT (OLD.SoLuongTon <=> NEW.SoLuongTon);
+
+CREATE TRIGGER `trg_ql_kho_delete`
+AFTER DELETE ON `ql_kho`
+FOR EACH ROW
+  INSERT INTO `lich_su_kho` (`MaNL`, `Truoc`, `Sau`, `NguoiThucHien`, `LyDo`)
+  VALUES (OLD.MaNL, OLD.SoLuongTon, 0, NULLIF(@kfc_actor, ''),
+          COALESCE(NULLIF(@kfc_reason, ''), 'Xóa nguyên liệu'));
+
+CREATE TRIGGER `trg_hoa_don_insert`
+AFTER INSERT ON `hoa_don`
+FOR EACH ROW
+  INSERT INTO `lich_su_don` (`MaHD`, `HanhDong`, `NguoiThucHien`)
+  VALUES (NEW.MaHD, CONCAT('Tạo đơn: ', NEW.TrangThai, ' / ', NEW.TrangThaiTT),
+          NULLIF(@kfc_actor, ''));
+
+CREATE TRIGGER `trg_hoa_don_update`
+AFTER UPDATE ON `hoa_don`
+FOR EACH ROW
+  INSERT INTO `lich_su_don` (`MaHD`, `HanhDong`, `NguoiThucHien`)
+  SELECT NEW.`MaHD`,
+         CONCAT('Cập nhật đơn: ', OLD.TrangThai, ' / ', OLD.TrangThaiTT,
+                ' -> ', NEW.TrangThai, ' / ', NEW.TrangThaiTT),
+         NULLIF(@kfc_actor, '')
+  WHERE OLD.TrangThai <> NEW.TrangThai
+     OR OLD.TrangThaiTT <> NEW.TrangThaiTT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -13,35 +13,29 @@ import java.util.Base64;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
-/** Doc bang user(hoten,mk). Tu chuyen mat khau plaintext cu -> PBKDF2 khi dang nhap. */
+/** Xác thực tài khoản hoạt động, chỉ chấp nhận mật khẩu PBKDF2. */
 public class TaiKhoanDAO {
-    private static final int VONG = 180000;
+    private static final int VONG = 600000;
+    private String vaiTro;
+    public String getVaiTro(){return vaiTro;}
+    public static String bamMatKhau(char[] mk) throws Exception { if(mk.length < 10) throw new IllegalArgumentException("Mật khẩu tối thiểu 10 ký tự"); return new TaiKhoanDAO().taoHash(mk); }
+    private static final java.util.Map<String, long[]> FAIL = new java.util.HashMap<>();
+    public static synchronized void kiemTraKhoa(String ten) { long[] a=FAIL.get(ten); if(a!=null && a[1]>System.currentTimeMillis()) throw new SecurityException("Tạm khóa 60 giây"); }
+    public static synchronized void ghiKetQua(String ten, boolean ok) { if(ok){FAIL.remove(ten);return;} long[] a=FAIL.computeIfAbsent(ten,k->new long[2]); if(a[1]>0 && a[1]<=System.currentTimeMillis()){a[0]=0;a[1]=0;} if(++a[0]>=5)a[1]=System.currentTimeMillis()+60000; }
 
     public boolean dangNhap(String ten, char[] matKhau) throws Exception {
         if (ten == null || ten.trim().isEmpty() || matKhau == null || matKhau.length == 0)
             return false;
         try (Connection c = database.getConnection();
-             PreparedStatement p = c.prepareStatement("SELECT mk FROM `user` WHERE hoten=? LIMIT 1")) {
+             PreparedStatement p = c.prepareStatement("SELECT mk,VaiTro FROM `user` WHERE hoten=? AND HoatDong=1 LIMIT 1")) {
             p.setString(1, ten.trim());
             try (ResultSet r = p.executeQuery()) {
                 if (!r.next()) return false;
                 String stored = r.getString(1);
                 if (stored == null) return false;
+                vaiTro = r.getString(2);
                 if (stored.startsWith("pbkdf2$")) return kiemTraHash(matKhau, stored);
-                // Ho tro user.sql cu co mk dang plaintext; chuyen sang hash sau khi xac minh.
-                byte[] a = new String(matKhau).getBytes(StandardCharsets.UTF_8);
-                byte[] b = stored.getBytes(StandardCharsets.UTF_8);
-                boolean ok = MessageDigest.isEqual(a, b);
-                Arrays.fill(a, (byte) 0);
-                if (ok) {
-                    String hash = taoHash(matKhau);
-                    try (PreparedStatement u = c.prepareStatement(
-                            "UPDATE `user` SET mk=? WHERE hoten=? AND mk=?")) {
-                        u.setString(1, hash); u.setString(2, ten.trim()); u.setString(3, stored);
-                        u.executeUpdate();
-                    }
-                }
-                return ok;
+                return false; // Không chấp nhận mật khẩu plaintext. Reset qua quản trị.
             }
         }
     }

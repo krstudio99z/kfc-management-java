@@ -25,11 +25,13 @@ import java.util.regex.Pattern;
 public class dat_mon extends javax.swing.JFrame {
 
     private final truy_cap dao = new truy_cap();
-    private final DecimalFormat money = new DecimalFormat("#,###");
+    private final DecimalFormat money = new DecimalFormat("#,##0.##");
 
     private DefaultTableModel menuModel;
     private DefaultTableModel cartModel;
     private TableRowSorter<DefaultTableModel> sorter;
+    private javax.swing.Timer refreshTimer;
+    @Override public void dispose(){ if(ordering){JOptionPane.showMessageDialog(this,"Đang lưu đơn, không đóng cửa sổ lúc này.");return;} if(refreshTimer!=null)refreshTimer.stop(); super.dispose(); }
 
     public dat_mon() {
         initComponents();
@@ -41,6 +43,9 @@ public class dat_mon extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         menuModel = (DefaultTableModel) tblThucDon.getModel();
         cartModel = (DefaultTableModel) tblGioHang.getModel();
+        menuModel.addColumn("Danh mục"); menuModel.addColumn("Ảnh");
+        tblThucDon.removeColumn(tblThucDon.getColumnModel().getColumn(5));
+        tblThucDon.removeColumn(tblThucDon.getColumnModel().getColumn(4));
 
         sorter = new TableRowSorter<>(menuModel);
         tblThucDon.setRowSorter(sorter);
@@ -52,7 +57,7 @@ public class dat_mon extends javax.swing.JFrame {
             @Override
             protected void setValue(Object value) {
                 setHorizontalAlignment(RIGHT);
-                setText(value instanceof Number ? money.format(((Number) value).doubleValue()) : "");
+                setText(value instanceof Number ? money.format(value) : "");
             }
         };
         tblThucDon.getColumnModel().getColumn(2).setCellRenderer(moneyRenderer);
@@ -62,27 +67,27 @@ public class dat_mon extends javax.swing.JFrame {
         loadMenu();
         updateTotal();
         // Tu cap nhat menu moi 15 giay neu quan ly nhap kho tren cua so khac.
-        new javax.swing.Timer(15000, e -> loadMenu()).start();
+        refreshTimer = new javax.swing.Timer(15000, e -> loadMenu()); refreshTimer.start();
         // CHỈ BỔ SUNG GIAO DIỆN: giữ nguyên bảng, giỏ hàng và logic đặt món.
         KfcTheme.apply(this, "THỰC ĐƠN KFC");
         KfcMenuCards.install(tblThucDon, jScrollPane1, this::addToCart);
     }
 
     // Hien ca mon het hang va mon quan ly ngung ban
+    private boolean menuLoading, menuError;
     private void loadMenu() {
-        try {
-            KhoService.dongBo();
-            List<mon_an> list = dao.selectAll();
-            menuModel.setRowCount(0);
-            for (mon_an ma : list) {
-                String tt = !ma.isChoPhepBan() ? "Ngừng bán" :
-                        (ma.isTrangThai() ? "Còn món" : "Hết món");
-                menuModel.addRow(new Object[]{ma.getMaMon(), ma.getTenMon(), ma.getGia(), tt});
+        if(menuLoading)return;
+        menuLoading=true;
+        new javax.swing.SwingWorker<List<mon_an>,Void>() {
+            @Override protected List<mon_an> doInBackground() throws Exception { KhoService.dongBo(); return dao.selectAll(); }
+            @Override protected void done(){
+                menuLoading=false;
+                if(!isDisplayable())return;
+                try { List<mon_an> list=get(); menuError=false; menuModel.setRowCount(0);
+                    for(mon_an ma:list){String tt=!ma.isChoPhepBan()?"Ngừng bán":(ma.isTrangThai()?"Còn món":"Hết món");menuModel.addRow(new Object[]{ma.getMaMon(),ma.getTenMon(),ma.getGia(),tt,ma.getDanhMuc(),ma.getHinhAnh()});}
+                }catch(Exception e){if(!menuError){menuError=true;JOptionPane.showMessageDialog(dat_mon.this,"Không tải được thực đơn từ CSDL: "+e.getMessage());}}
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Không tải được thực đơn từ CSDL!");
-        }
+        }.execute();
     }
 
     private void search() {
@@ -95,7 +100,9 @@ public class dat_mon extends javax.swing.JFrame {
     }
 
     // Thêm món đang chọn ở thực đơn vào giỏ
+    private boolean ordering;
     private void addToCart() {
+        if(ordering)return;
         int viewRow = tblThucDon.getSelectedRow();
         if (viewRow < 0) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn một món trong thực đơn!");
@@ -108,26 +115,29 @@ public class dat_mon extends javax.swing.JFrame {
         }
         String ma = menuModel.getValueAt(row, 0).toString();
         String ten = menuModel.getValueAt(row, 1).toString();
-        double gia = ((Number) menuModel.getValueAt(row, 2)).doubleValue();
+        BigDecimal gia = (BigDecimal) menuModel.getValueAt(row, 2);
         int soLuong = (Integer) spnSoLuong.getValue();
 
         // Nếu món đã có trong giỏ thì cộng dồn số lượng
         for (int i = 0; i < cartModel.getRowCount(); i++) {
             if (cartModel.getValueAt(i, 0).equals(ma)) {
                 int sl = (Integer) cartModel.getValueAt(i, 2) + soLuong;
+                if (sl > 999) { JOptionPane.showMessageDialog(this,"Tối đa 999 phần/món"); return; }
                 cartModel.setValueAt(sl, i, 2);
-                cartModel.setValueAt(sl * gia, i, 4);
+                cartModel.setValueAt(gia, i, 3);
+                cartModel.setValueAt(gia.multiply(BigDecimal.valueOf(sl)), i, 4);
                 updateTotal();
                 spnSoLuong.setValue(1);
                 return;
             }
         }
-        cartModel.addRow(new Object[]{ma, ten, soLuong, gia, soLuong * gia});
+        cartModel.addRow(new Object[]{ma, ten, soLuong, gia, gia.multiply(BigDecimal.valueOf(soLuong))});
         updateTotal();
         spnSoLuong.setValue(1);
     }
 
     private void removeSelected() {
+        if(ordering)return;
         int row = tblGioHang.getSelectedRow();
         if (row < 0) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn món trong giỏ cần bỏ!");
@@ -138,6 +148,7 @@ public class dat_mon extends javax.swing.JFrame {
     }
 
     private void clearCart() {
+        if(ordering)return;
         if (cartModel.getRowCount() == 0) return;
         int confirm = JOptionPane.showConfirmDialog(this, "Xóa toàn bộ giỏ hàng?",
                 "Xác nhận", JOptionPane.YES_NO_OPTION);
@@ -147,10 +158,10 @@ public class dat_mon extends javax.swing.JFrame {
         }
     }
 
-    private double getTotal() {
-        double total = 0;
+    private BigDecimal getTotal() {
+        BigDecimal total = BigDecimal.ZERO;
         for (int i = 0; i < cartModel.getRowCount(); i++) {
-            total += ((Number) cartModel.getValueAt(i, 4)).doubleValue();
+            total = total.add((BigDecimal) cartModel.getValueAt(i, 4));
         }
         return total;
     }
@@ -160,6 +171,7 @@ public class dat_mon extends javax.swing.JFrame {
     }
 
     private void placeOrder() {
+        if(ordering)return;
         if (cartModel.getRowCount() == 0) {
             JOptionPane.showMessageDialog(this, "Giỏ hàng đang trống, hãy chọn món trước!");
             return;
@@ -169,10 +181,10 @@ public class dat_mon extends javax.swing.JFrame {
         for (int i = 0; i < cartModel.getRowCount(); i++) {
             String ma = cartModel.getValueAt(i, 0).toString();
             int sl = ((Number)cartModel.getValueAt(i, 2)).intValue();
-            BigDecimal gia = BigDecimal.valueOf(((Number)cartModel.getValueAt(i, 3)).doubleValue());
+            BigDecimal gia = (BigDecimal)cartModel.getValueAt(i, 3);
             gio.add(new HoaDonDAO.MatHang(ma, sl, gia));
             sb.append(cartModel.getValueAt(i, 1)).append(" x").append(sl)
-              .append(" = ").append(money.format(((Number)cartModel.getValueAt(i, 4)).doubleValue()))
+              .append(" = ").append(money.format(cartModel.getValueAt(i, 4)))
               .append(" đ\n");
         }
         sb.append("\nTổng tiền: ").append(money.format(getTotal())).append(" đ");
@@ -182,16 +194,19 @@ public class dat_mon extends javax.swing.JFrame {
 
         // Chi ghi nhan thanh cong SAU khi luu hoa don va tru kho cung giao dich.
         HoaDonDAO hddao = new HoaDonDAO();
-        int maHD;
-        try {
-            maHD = hddao.datHang(gio);
-        } catch (java.sql.SQLException e) {
-            JOptionPane.showMessageDialog(this, "Đặt món thất bại: " + e.getMessage(),
-                    "Không thể đặt món", JOptionPane.ERROR_MESSAGE);
-            loadMenu();
-            return;
-        }
-
+        kfc.ui.Checkout.Request req = kfc.ui.Checkout.ask(this, getTotal());
+        if(req == null) return;
+        ordering=true; btnDatMon.setEnabled(false); btnThemGio.setEnabled(false); btnXoaMon.setEnabled(false); btnXoaHet.setEnabled(false);
+        new javax.swing.SwingWorker<Integer,Void>() {
+            @Override protected Integer doInBackground() throws Exception {return hddao.datHang(gio, req.method, req.phone, req.takeaway);}
+            @Override protected void done(){
+                ordering=false;btnDatMon.setEnabled(true);btnThemGio.setEnabled(true);btnXoaMon.setEnabled(true);btnXoaHet.setEnabled(true);
+                try {int id=get(); if(isDisplayable()) afterOrder(hddao,id);}
+                catch(Exception e){if(isDisplayable()){JOptionPane.showMessageDialog(dat_mon.this,"Đặt món thất bại: "+(e.getCause()==null?e.getMessage():e.getCause().getMessage()),"Không thể đặt món",JOptionPane.ERROR_MESSAGE);loadMenu();}}
+            }
+        }.execute();
+    }
+    private void afterOrder(HoaDonDAO hddao,int maHD){
         // Tu day hoa don DA LUOC LUU thanh cong; loi in an khong huy hoa don.
         cartModel.setRowCount(0);
         updateTotal();
@@ -204,7 +219,7 @@ public class dat_mon extends javax.swing.JFrame {
             bill.setFont(new Font("Monospaced", Font.PLAIN, 12));
             bill.setEditable(false);
             JOptionPane.showMessageDialog(this, new JScrollPane(bill),
-                    "Đã lưu đơn " + maIn + " - Chuẩn bị in", JOptionPane.INFORMATION_MESSAGE);
+                    "Đã lưu đơn " + maIn + " - CHƯA THANH TOÁN", JOptionPane.INFORMATION_MESSAGE);
             if (!bill.print()) {
                 JOptionPane.showMessageDialog(this, "Bạn đã hủy in. Hóa đơn " + maIn
                         + " đã được lưu và có thể in lại ở Quản lý hóa đơn.");
@@ -301,7 +316,7 @@ public class dat_mon extends javax.swing.JFrame {
             boolean[] canEdit = new boolean[]{false, false, false, false};
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit[columnIndex];
+                return false;
             }
         });
         tblThucDon.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
@@ -320,7 +335,7 @@ public class dat_mon extends javax.swing.JFrame {
             boolean[] canEdit = new boolean[]{false, false, false, false, false};
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit[columnIndex];
+                return false;
             }
         });
         tblGioHang.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
