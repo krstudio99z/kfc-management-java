@@ -55,6 +55,7 @@ public class KhoDAO {
     }
 
     public void them(NguyenLieu nl) throws SQLException {
+        kfc.service.PhienQuanLy.yeuCauVaiTro("ADMIN", "KHO");
         kiemTra(nl);
         KhoService.giaoDich(c -> {
             try (PreparedStatement p = c.prepareStatement(
@@ -66,12 +67,14 @@ public class KhoDAO {
     }
 
     public void sua(NguyenLieu nl) throws SQLException {
+        kfc.service.PhienQuanLy.yeuCauVaiTro("ADMIN", "KHO");
         kiemTra(nl);
         KhoService.giaoDich(c -> {
+            try(PreparedStatement check=c.prepareStatement("SELECT DonVi, (EXISTS(SELECT 1 FROM cong_thuc_mon WHERE MaNL=?) OR EXISTS(SELECT 1 FROM chi_tiet_nguyen_lieu_hoa_don WHERE MaNL=?) OR EXISTS(SELECT 1 FROM chi_tiet_phieu_nhap WHERE MaNL=?)) AS DaDung FROM ql_kho WHERE MaNL=?")){for(int i=1;i<=4;i++)check.setString(i,nl.ma);try(ResultSet r=check.executeQuery()){if(!r.next())throw new SQLException("Không tìm thấy nguyên liệu");if(r.getBoolean(2)&&!r.getString(1).equals(nl.donVi))throw new SQLException("Không đổi đơn vị nguyên liệu đã sử dụng; hãy tạo mã mới");}}
             try (PreparedStatement p = c.prepareStatement(
-                    "UPDATE ql_kho SET TenNL=?,DonVi=?,SoLuongTon=? WHERE MaNL=?")) {
+                    "UPDATE ql_kho SET TenNL=?,DonVi=? WHERE MaNL=?")) {
                 p.setString(1, nl.ten); p.setString(2, nl.donVi);
-                p.setBigDecimal(3, nl.ton); p.setString(4, nl.ma);
+                p.setString(3, nl.ma);
                 if (p.executeUpdate() == 0) throw new SQLException("Không tìm thấy mã nguyên liệu");
             }
         });
@@ -79,6 +82,7 @@ public class KhoDAO {
 
     /** Cong them so luong vao kho theo huong atomic, tranh ghi de ton kho hien tai. */
     public void nhapThem(String maNL, BigDecimal soLuong) throws SQLException {
+        kfc.service.PhienQuanLy.yeuCauVaiTro("ADMIN", "KHO");
         if (maNL == null || maNL.trim().isEmpty() || soLuong == null || soLuong.signum() <= 0
                 || soLuong.scale() > 3) throw new SQLException("Số lượng nhập phải > 0, tối đa 3 chữ số thập phân");
         KhoService.giaoDich(c -> {
@@ -91,6 +95,7 @@ public class KhoDAO {
     }
 
     public void xoa(String maNL) throws SQLException {
+        kfc.service.PhienQuanLy.yeuCauVaiTro("ADMIN", "KHO");
         KhoService.giaoDich(c -> {
             try (PreparedStatement p = c.prepareStatement("DELETE FROM ql_kho WHERE MaNL=?")) {
                 p.setString(1, maNL);
@@ -100,6 +105,7 @@ public class KhoDAO {
     }
 
     public void luuCongThuc(String maMon, String maNL, BigDecimal dinhLuong) throws SQLException {
+        kfc.service.PhienQuanLy.yeuCauVaiTro("ADMIN", "KHO");
         if (maMon == null || maNL == null || dinhLuong == null || dinhLuong.signum() <= 0
                 || dinhLuong.scale() > 3)
             throw new SQLException("Định lượng phải lớn hơn 0");
@@ -114,6 +120,7 @@ public class KhoDAO {
     }
 
     public void xoaCongThuc(String maMon, String maNL) throws SQLException {
+        kfc.service.PhienQuanLy.yeuCauVaiTro("ADMIN", "KHO");
         KhoService.giaoDich(c -> {
             try (PreparedStatement p = c.prepareStatement(
                     "DELETE FROM cong_thuc_mon WHERE MaMon=? AND MaNL=?")) {

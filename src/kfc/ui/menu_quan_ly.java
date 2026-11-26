@@ -53,11 +53,15 @@ public class menu_quan_ly extends javax.swing.JFrame {
         pnlActions.add(Box.createVerticalStrut(16));
         addNavigationButton(home);
         pnlActions.add(Box.createVerticalStrut(10));
-        addNavigationButton(mon);
+        if(PhienQuanLy.coVaiTro("ADMIN")) addNavigationButton(mon);
         pnlActions.add(Box.createVerticalStrut(10));
-        addNavigationButton(kho);
+        if(PhienQuanLy.coVaiTro("ADMIN","KHO")) addNavigationButton(kho);
         pnlActions.add(Box.createVerticalStrut(10));
-        addNavigationButton(hd);
+        if(PhienQuanLy.coVaiTro("ADMIN","THU_NGAN")) addNavigationButton(hd);
+        pnlActions.add(Box.createVerticalStrut(10));
+        JButton extended = new RoundedButton("NGHIỆP VỤ MỞ RỘNG", new Color(228, 0, 43), new Color(195, 0, 36), 14);
+        extended.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        extended.addActionListener(e -> showExtended()); addNavigationButton(extended);
         pnlActions.add(Box.createVerticalGlue());
         addNavigationButton(exit);
 
@@ -73,6 +77,7 @@ public class menu_quan_ly extends javax.swing.JFrame {
         root.add(pnlHeader, BorderLayout.NORTH);
         root.add(content, BorderLayout.CENTER);
         setContentPane(root);
+        addWindowListener(new java.awt.event.WindowAdapter(){ @Override public void windowClosing(java.awt.event.WindowEvent e){ PhienQuanLy.dangXuat(); } });
         setResizable(true);
         setSize(1400, 900);
         setMinimumSize(new Dimension(1120, 720));
@@ -86,6 +91,11 @@ public class menu_quan_ly extends javax.swing.JFrame {
         pnlActions.add(button);
     }
 
+    private void showExtended(){
+        if(extendedPanel==null){extendedPanel=new NghiepVuPanel();pnlWorkspace.add(extendedPanel,"extended");}
+        showSection("extended","NGHIỆP VỤ MỞ RỘNG");extendedPanel.refresh();
+    }
+    private NghiepVuPanel extendedPanel;
     private void showOverview() {
         workspaceLayout.show(pnlWorkspace, "home");
         lblTitle.setText("QUẢN LÝ HỆ THỐNG KFC");
@@ -208,7 +218,7 @@ public class menu_quan_ly extends javax.swing.JFrame {
             int w = getWidth();
             int h = getHeight();
             if (customLogo != null) {
-                g2.drawImage(customLogo, 0, 0, w, h, null);
+                KfcImages.drawContain(g2, customLogo, 0, 0, w, h);
             } else {
                 g2.setColor(new Color(228, 0, 43));
                 g2.fillOval(2, 2, w - 4, h - 4);
@@ -242,7 +252,7 @@ public class menu_quan_ly extends javax.swing.JFrame {
             g2.fill(new RoundRectangle2D.Float(0, 0, w, h, 22, 22));
 
             if (customBanner != null) {
-                g2.drawImage(customBanner, 12, 12, w - 24, h - 24, null);
+                KfcImages.drawContain(g2, customBanner, 12, 12, w - 24, h - 24);
                 g2.dispose();
                 return;
             }
@@ -292,22 +302,7 @@ public class menu_quan_ly extends javax.swing.JFrame {
     }
 
     private static Image loadOptionalImage(String fileName) {
-        try {
-            URL url = menu_quan_ly.class.getResource("/kfc/images/" + fileName);
-            if (url != null) {
-                return ImageIO.read(url);
-            }
-            File f1 = new File("src/kfc/images/" + fileName);
-            if (f1.exists()) {
-                return ImageIO.read(f1);
-            }
-            File f2 = new File("images/" + fileName);
-            if (f2.exists()) {
-                return ImageIO.read(f2);
-            }
-        } catch (Exception ignored) {
-        }
-        return null;
+        return KfcImages.asset("kfc/images/" + fileName);
     }
 
     // ===================== GIAO DIỆN (kiểu NetBeans) =====================

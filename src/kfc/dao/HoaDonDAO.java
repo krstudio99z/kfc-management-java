@@ -36,12 +36,18 @@ public class HoaDonDAO {
 
     /** Tao hoa don, chi tiet va tru kho cung giao dich; tranh ban vuot ton kho. */
     public int datHang(List<MatHang> gio) throws SQLException {
+        return datHang(gio,"TIEN_MAT","",false);
+    }
+    public int datHang(List<MatHang> gio,String method,String phone,boolean takeaway) throws SQLException {
+        if(!java.util.Arrays.asList("TIEN_MAT","CHUYEN_KHOAN").contains(method)) throw new SQLException("Phương thức không hợp lệ");
         if (gio == null || gio.isEmpty()) throw new SQLException("Giỏ hàng trống");
         try (Connection c = database.getConnection()) {
             c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             c.setAutoCommit(false);
             try {
+                try(PreparedStatement p=c.prepareStatement("SET @kfc_actor='KHACH'")){p.execute();}
                 KhoService.khoaKho(c);
+                if(phone!=null&&!phone.isEmpty()){try(PreparedStatement p=c.prepareStatement("SELECT MaKH FROM khach_hang WHERE SDT=?")){p.setString(1,phone);try(ResultSet r=p.executeQuery()){if(!r.next())throw new SQLException("SĐT chưa đăng ký thành viên; bỏ trống hoặc đăng ký tại thu ngân");}}}
                 List<DongDon> ds = new ArrayList<>();
                 Map<String, BigDecimal> canDung = new LinkedHashMap<>();
                 BigDecimal tong = BigDecimal.ZERO;
@@ -50,7 +56,7 @@ public class HoaDonDAO {
                 try (PreparedStatement pMon = c.prepareStatement(sqlMon);
                      PreparedStatement pCt = c.prepareStatement(sqlCt)) {
                     for (MatHang h : gio) {
-                        if (h.maMon == null || h.soLuong <= 0 || h.giaHienThi == null)
+                        if (h.maMon == null || h.soLuong <= 0 || h.soLuong > 999 || h.giaHienThi == null)
                             throw new SQLException("Dữ liệu món ăn không hợp lệ");
                         pMon.setString(1, h.maMon);
                         String ten;
@@ -69,6 +75,7 @@ public class HoaDonDAO {
                         try (ResultSet r = pCt.executeQuery()) {
                             while (r.next()) {
                                 coCongThuc = true;
+                                if(r.getBigDecimal("DinhLuong").signum()<=0)throw new SQLException("Định lượng không hợp lệ");
                                 BigDecimal can = r.getBigDecimal("DinhLuong")
                                         .multiply(BigDecimal.valueOf(h.soLuong));
                                 canDung.merge(r.getString("MaNL"), can, BigDecimal::add);
@@ -89,6 +96,7 @@ public class HoaDonDAO {
                         }
                     }
                 }
+                try (PreparedStatement why=c.prepareStatement("SET @kfc_reason='Giữ kho cho đơn mới'")){why.execute();}
                 try (PreparedStatement p = c.prepareStatement(
                         "UPDATE ql_kho SET SoLuongTon=SoLuongTon-? WHERE MaNL=? AND SoLuongTon>=?")) {
                     for (Map.Entry<String, BigDecimal> e : canDung.entrySet()) {
@@ -100,8 +108,8 @@ public class HoaDonDAO {
                 }
                 int maHD;
                 try (PreparedStatement p = c.prepareStatement(
-                        "INSERT INTO hoa_don(NgayLap,TongTien) VALUES (NOW(),?)", Statement.RETURN_GENERATED_KEYS)) {
-                    p.setBigDecimal(1, tong);
+                        "INSERT INTO hoa_don(NgayLap,TongTien,PhuongThuc,MaKH,HinhThuc) VALUES (NOW(),?, ?, (SELECT MaKH FROM khach_hang WHERE SDT=?), ?)", Statement.RETURN_GENERATED_KEYS)) {
+                    p.setBigDecimal(1, tong); p.setString(2,method); p.setString(3,phone); p.setString(4,takeaway?"MANG_DI":"TAI_CHO");
                     p.executeUpdate();
                     try (ResultSet r = p.getGeneratedKeys()) {
                         if (!r.next()) throw new SQLException("Không tạo được mã hóa đơn");
@@ -116,6 +124,7 @@ public class HoaDonDAO {
                         p.executeUpdate();
                     }
                 }
+                try(PreparedStatement p=c.prepareStatement("INSERT INTO chi_tiet_nguyen_lieu_hoa_don(MaHD,MaNL,SoLuong) VALUES(?,?,?)")){ for(Map.Entry<String,BigDecimal> e:canDung.entrySet()){ p.setInt(1,maHD);p.setString(2,e.getKey());p.setBigDecimal(3,e.getValue());p.addBatch(); } p.executeBatch(); }
                 KhoService.capNhatTrangThai(c);
                 c.commit();
                 return maHD;
@@ -126,70 +135,9 @@ public class HoaDonDAO {
         }
     }
 
-    /** Xoa hoa don; neu hoanKho = true thi cong tra nguyen lieu theo cong thuc ve lai kho. */
+    /** Giữ hóa đơn, hủy theo trạng thái và hoàn kho từ snapshot. */
     public void xoaHoaDon(int maHD, boolean hoanKho) throws SQLException {
-        try (Connection c = database.getConnection()) {
-            c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-            c.setAutoCommit(false);
-            try {
-                KhoService.khoaKho(c);
-
-                try (PreparedStatement pCheck = c.prepareStatement(
-                        "SELECT MaHD FROM hoa_don WHERE MaHD=? FOR UPDATE")) {
-                    pCheck.setInt(1, maHD);
-                    try (ResultSet r = pCheck.executeQuery()) {
-                        if (!r.next()) {
-                            throw new SQLException("Không tìm thấy hóa đơn HD" + String.format("%06d", maHD));
-                        }
-                    }
-                }
-
-                if (hoanKho) {
-                    String sqlHoan = "SELECT ct.MaNL, SUM(cthd.SoLuong * ct.DinhLuong) AS TongHoan "
-                            + "FROM chi_tiet_hoa_don cthd "
-                            + "JOIN cong_thuc_mon ct ON cthd.MaMon = ct.MaMon "
-                            + "WHERE cthd.MaHD = ? "
-                            + "GROUP BY ct.MaNL";
-                    Map<String, BigDecimal> dsHoan = new LinkedHashMap<>();
-                    try (PreparedStatement pHoan = c.prepareStatement(sqlHoan)) {
-                        pHoan.setInt(1, maHD);
-                        try (ResultSet r = pHoan.executeQuery()) {
-                            while (r.next()) {
-                                dsHoan.put(r.getString("MaNL"), r.getBigDecimal("TongHoan"));
-                            }
-                        }
-                    }
-                    try (PreparedStatement pUpdateKho = c.prepareStatement(
-                            "UPDATE ql_kho SET SoLuongTon = SoLuongTon + ? WHERE MaNL = ?")) {
-                        for (Map.Entry<String, BigDecimal> entry : dsHoan.entrySet()) {
-                            pUpdateKho.setBigDecimal(1, entry.getValue());
-                            pUpdateKho.setString(2, entry.getKey());
-                            pUpdateKho.executeUpdate();
-                        }
-                    }
-                }
-
-                try (PreparedStatement pDelCt = c.prepareStatement(
-                        "DELETE FROM chi_tiet_hoa_don WHERE MaHD = ?")) {
-                    pDelCt.setInt(1, maHD);
-                    pDelCt.executeUpdate();
-                }
-
-                try (PreparedStatement pDelHd = c.prepareStatement(
-                        "DELETE FROM hoa_don WHERE MaHD = ?")) {
-                    pDelHd.setInt(1, maHD);
-                    if (pDelHd.executeUpdate() == 0) {
-                        throw new SQLException("Xóa hóa đơn thất bại!");
-                    }
-                }
-
-                KhoService.capNhatTrangThai(c);
-                c.commit();
-            } catch (SQLException | RuntimeException e) {
-                c.rollback();
-                throw e;
-            }
-        }
+        kfc.service.DonHangService.huy(maHD, hoanKho, false, "Hủy từ quản lý hóa đơn");
     }
 
     /** Tai tu DB, khong lay du lieu tu gio hang (de co the in lai hoa don). */
@@ -198,7 +146,7 @@ public class HoaDonDAO {
         StringBuilder sb = new StringBuilder();
         try (Connection c = database.getConnection()) {
             try (PreparedStatement p = c.prepareStatement(
-                    "SELECT MaHD,NgayLap,TongTien FROM hoa_don WHERE MaHD=?")) {
+                    "SELECT MaHD,NgayLap,TongTien,TrangThai,TrangThaiTT,PhuongThuc FROM hoa_don WHERE MaHD=?")) {
                 p.setInt(1, maHD);
                 try (ResultSet r = p.executeQuery()) {
                     if (!r.next()) throw new SQLException("Không tìm thấy hóa đơn " + maHD);
@@ -206,6 +154,8 @@ public class HoaDonDAO {
                     sb.append("             KFC - HOA DON\n");
                     sb.append("---------------------------------------------\n");
                     sb.append("Ma hoa don: HD").append(String.format("%06d", maHD)).append('\n');
+                    sb.append("Trang thai: ").append(r.getString("TrangThai")).append(" / ").append(r.getString("TrangThaiTT")).append("\n");
+                    sb.append("Thanh toan: ").append(r.getString("PhuongThuc")).append("\n");
                     sb.append("Thoi gian: ").append(ngay.toLocalDateTime().format(
                             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))).append('\n');
                     sb.append("---------------------------------------------\n");
@@ -214,7 +164,7 @@ public class HoaDonDAO {
             }
             try (PreparedStatement p = c.prepareStatement(
                     "SELECT COALESCE(c.TenMon,m.TenMon),c.SoLuong,c.DonGia,c.ThanhTien "
-                    + "FROM chi_tiet_hoa_don c JOIN monan m ON c.MaMon=m.MaMon "
+                    + "FROM chi_tiet_hoa_don c LEFT JOIN monan m ON c.MaMon=m.MaMon "
                     + "WHERE c.MaHD=? ORDER BY c.MaMon")) {
                 p.setInt(1, maHD);
                 try (ResultSet r = p.executeQuery()) {

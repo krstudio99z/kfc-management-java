@@ -11,6 +11,7 @@ import java.awt.Font;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.GridLayout;
 import java.awt.FlowLayout;
 import java.awt.RenderingHints;
@@ -47,14 +48,20 @@ public class dang_nhap extends javax.swing.JFrame {
     private void dangNhap() {
         char[] password = txtPass.getPassword();
         try {
-            boolean ok = new TaiKhoanDAO().dangNhap(txtUser.getText(), password);
+            if(PhienQuanLy.daDangNhap()){JOptionPane.showMessageDialog(this,"Đã có phiên quản lý. Hãy đăng xuất trước.");return;}
+            String ten = txtUser.getText().trim();
+            String key = ten.toLowerCase(java.util.Locale.ROOT);
+            TaiKhoanDAO.kiemTraKhoa(key);
+            TaiKhoanDAO dao = new TaiKhoanDAO();
+            boolean ok = dao.dangNhap(ten, password);
+            TaiKhoanDAO.ghiKetQua(key, ok);
             if (!ok) {
                 JOptionPane.showMessageDialog(this, "Sai tài khoản hoặc mật khẩu!");
                 txtPass.setText("");
                 return;
             }
-            PhienQuanLy.dangNhap(txtUser.getText().trim());
-            new menu_quan_ly().setVisible(true);
+            PhienQuanLy.dangNhap(ten, dao.getVaiTro());
+            try {new menu_quan_ly().setVisible(true);} catch(RuntimeException ex){PhienQuanLy.dangXuat();throw ex;}
             dispose();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi đăng nhập: " + e.getMessage());
@@ -239,6 +246,7 @@ public class dang_nhap extends javax.swing.JFrame {
     }
 
     private static class KfcLogoPanel extends JPanel {
+        private final Image customLogo=KfcImages.asset("kfc/images/kfc_logo.png");
         KfcLogoPanel() {
             setOpaque(false);
         }
@@ -248,6 +256,7 @@ public class dang_nhap extends javax.swing.JFrame {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if(customLogo!=null){KfcImages.drawContain(g2,customLogo,0,0,getWidth(),getHeight());g2.dispose();return;}
             int size = Math.min(getWidth(), getHeight());
             g2.setColor(KFC_RED);
             g2.fillOval(1, 1, size - 2, size - 2);

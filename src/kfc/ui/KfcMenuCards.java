@@ -47,11 +47,11 @@ import javax.swing.table.DefaultTableModel;
 public final class KfcMenuCards {
     private final JTable table;
     private final Runnable onAdd;
-    private final DecimalFormat money = new DecimalFormat("#,###");
+    private final DecimalFormat money = new DecimalFormat("#,##0.##");
     private final ScrollPanel cards = new ScrollPanel();
-    private final Map<String, ImageIcon> images = new HashMap<>();
+
     private final JComboBox<String> categories = new JComboBox<>(new String[]{
-        "Tất cả món", "Combo", "Gà rán", "Burger", "Món kèm", "Nước uống"
+        "Tất cả món", "Combo", "Gà rán", "Burger", "Món kèm", "Nước uống", "Tráng miệng"
     });
     private final JPanel views = new JPanel(new CardLayout());
     private final JButton switchMode = new JButton("☷  Xem bảng");
@@ -142,15 +142,17 @@ public final class KfcMenuCards {
         }
         cards.removeAll();
         String category = (String) categories.getSelectedItem();
+        for(int i=0;i<table.getModel().getRowCount();i++){String dm=str(table.getModel().getValueAt(i,4)); if(!dm.isEmpty()){boolean exists=false;for(int j=0;j<categories.getItemCount();j++)if(dm.equals(categories.getItemAt(j)))exists=true;if(!exists)categories.addItem(dm);}}
         int displayed = 0;
         DefaultTableModel model = (DefaultTableModel) table.getModel();
         for (int view = 0; view < table.getRowCount(); view++) {
             int modelRow = table.convertRowIndexToModel(view);
             String code = str(model.getValueAt(modelRow, 0));
             String name = str(model.getValueAt(modelRow, 1));
-            double price = ((Number) model.getValueAt(modelRow, 2)).doubleValue();
+            java.math.BigDecimal price = (java.math.BigDecimal) model.getValueAt(modelRow, 2);
             String status = str(model.getValueAt(modelRow, 3));
-            if (!matchesCategory(category, name)) continue;
+            String dbCategory = str(model.getValueAt(modelRow, 4));
+            if (!"Tất cả món".equals(category) && !(dbCategory.isEmpty() ? matchesCategory(category,name) : category.equals(dbCategory))) continue;
             JPanel item = makeCard(code, name, price, status, modelRow);
             item.setAlignmentX(Component.LEFT_ALIGNMENT);
             item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
@@ -175,22 +177,23 @@ public final class KfcMenuCards {
         }
     }
 
-    private JPanel makeCard(String code, String name, double price, String status, int modelRow) {
+    private JPanel makeCard(String code, String name, java.math.BigDecimal price, String status, int modelRow) {
         RoundedCard card = new RoundedCard();
         card.setLayout(new BorderLayout(12, 0));
         card.setBorder(new EmptyBorder(12, 12, 12, 12));
         card.setPreferredSize(new Dimension(350, 158));
 
-        JLabel photo = new JLabel(imageFor(code, name));
-        photo.setPreferredSize(new Dimension(132, 132));
-        photo.setMinimumSize(new Dimension(132, 132));
+        String path = str(table.getModel().getValueAt(modelRow,5));
+        JLabel photo = new JLabel(imageFor(code, name, path));
+        photo.setPreferredSize(new Dimension(152, 132));
+        photo.setMinimumSize(new Dimension(152, 132));
         photo.setHorizontalAlignment(SwingConstants.CENTER);
         card.add(photo, BorderLayout.WEST);
 
         JPanel info = new JPanel();
         info.setOpaque(false);
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
-        JLabel title = new JLabel(name);
+        JLabel title = new JLabel("<html><body style='width: 155px'>" + name.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;") + "</body></html>");
         title.setFont(new Font("Segoe UI", Font.BOLD, 16));
         title.setForeground(KfcTheme.INK);
         title.setToolTipText(name);
@@ -212,7 +215,8 @@ public final class KfcMenuCards {
         add.setEnabled("Còn món".equals(status));
         add.setAlignmentX(Component.LEFT_ALIGNMENT);
         add.addActionListener(e -> {
-            int row = table.convertRowIndexToView(modelRow);
+            int found=-1; for(int i=0;i<table.getModel().getRowCount();i++) if(code.equals(str(table.getModel().getValueAt(i,0)))) {found=i;break;}
+            int row = found<0?-1:table.convertRowIndexToView(found);
             if (row >= 0) {
                 table.getSelectionModel().setSelectionInterval(row, row);
                 onAdd.run();
@@ -234,62 +238,8 @@ public final class KfcMenuCards {
         return card;
     }
 
-    private ImageIcon imageFor(String code, String name) {
-        String normalized = slug(name);
-        String codeSlug = slug(code);
-        String file = null;
-        String[] guesses = {codeSlug + ".png", normalized + ".png", codeSlug + ".jpg", normalized + ".jpg"};
-        for (String candidate : guesses) {
-            if (imageExists(candidate)) { file = candidate; break; }
-        }
-        if (file == null) {
-            if (normalized.contains("he_vui_ve")) file = "combo_he_vui_ve.png";
-            else if (normalized.contains("he_ron_rang")) file = "combo_he_ron_rang.png";
-            else if (normalized.contains("ngon_dinh")) file = "combo_ngon_dinh.png";
-            else if (normalized.contains("combo") || normalized.contains("phan_an") || normalized.contains("set_")) file = "combo.png";
-            else if (normalized.contains("burger") || normalized.contains("hamburger") || normalized.contains("banh_mi")) file = "burger.png";
-            else if (normalized.contains("khoai") || normalized.contains("french_fries")) file = "khoai_tay_chien.png";
-            else if (normalized.contains("pepsi") || normalized.contains("coca") || normalized.contains("nuoc") || normalized.contains("tra") || normalized.contains("7up")) file = "nuoc_ngot.png";
-            else if (normalized.contains("com") || normalized.contains("rice")) file = "com_ga.png";
-            else if (normalized.contains("canh_ga") || normalized.contains("sot_cay") || normalized.contains("wing")) file = "canh_ga.png";
-            else if (normalized.contains("popcorn") || normalized.contains("vien") || normalized.contains("nugget")) file = "ga_vien.png";
-            else file = "ga_ran.png";
-        }
-        final String cacheKey = file;
-        ImageIcon hit = images.get(cacheKey);
-        if (hit != null) return hit;
-        try {
-            BufferedImage source = loadImage(file);
-            if (source != null) {
-                // Image thumbnail có tỷ lệ chuẩn, không giãn méo ảnh sản phẩm.
-                Image scaled = source.getScaledInstance(132, 132, Image.SCALE_SMOOTH);
-                ImageIcon icon = new ImageIcon(scaled);
-                images.put(cacheKey, icon);
-                return icon;
-            }
-        } catch (Exception ignored) { }
-        BufferedImage fallback = new BufferedImage(132, 132, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = fallback.createGraphics();
-        g.setColor(new Color(255, 242, 244)); g.fillRect(0, 0, 132, 132);
-        g.setColor(KfcTheme.RED); g.setFont(new Font("Serif", Font.BOLD | Font.ITALIC, 28));
-        g.drawString("KFC", 31, 71); g.dispose();
-        ImageIcon icon = new ImageIcon(fallback);
-        images.put(cacheKey, icon);
-        return icon;
-    }
-
-    private static boolean imageExists(String fileName) {
-        if (KfcMenuCards.class.getResource("/kfc/images/mon/" + fileName) != null) return true;
-        return new File("src/kfc/images/mon/" + fileName).isFile()
-                || new File("kfc/images/mon/" + fileName).isFile();
-    }
-
-    private static BufferedImage loadImage(String fileName) throws Exception {
-        URL url = KfcMenuCards.class.getResource("/kfc/images/mon/" + fileName);
-        if (url != null) return ImageIO.read(url);
-        File file = new File("src/kfc/images/mon/" + fileName);
-        if (!file.isFile()) file = new File("kfc/images/mon/" + fileName);
-        return file.isFile() ? ImageIO.read(file) : null;
+    private ImageIcon imageFor(String code, String name, String path) {
+        return KfcImages.menuIcon(code, name, path, 152, 132);
     }
 
     private static boolean matchesCategory(String category, String name) {
@@ -297,9 +247,10 @@ public final class KfcMenuCards {
         String n = slug(name);
         switch (category) {
             case "Combo": return n.contains("combo") || n.contains("phan_an") || n.contains("set_");
-            case "Gà rán": return n.contains("ga") || n.contains("chicken") || n.contains("wing");
+            case "Gà rán": return !n.contains("combo") && !n.contains("burger") && (n.contains("ga") || n.contains("chicken") || n.contains("wing"));
             case "Burger": return n.contains("burger") || n.contains("hamburger") || n.contains("banh_mi");
             case "Món kèm": return n.contains("khoai") || n.contains("popcorn") || n.contains("vien") || n.contains("nugget") || n.contains("salad");
+            case "Tráng miệng": return n.contains("kem") || n.contains("sundae");
             case "Nước uống": return n.contains("pepsi") || n.contains("coca") || n.contains("nuoc") || n.contains("tra") || n.contains("7up");
             default: return true;
         }

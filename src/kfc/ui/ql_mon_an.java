@@ -19,7 +19,7 @@ public class ql_mon_an extends javax.swing.JPanel {
     private TableRowSorter<DefaultTableModel> sorter;
 
     public ql_mon_an() {
-        PhienQuanLy.yeuCauDangNhap();
+        PhienQuanLy.yeuCauVaiTro("ADMIN");
         initComponents();
         init();
     }
@@ -60,7 +60,7 @@ public class ql_mon_an extends javax.swing.JPanel {
         mon_an ma = new mon_an();
         ma.setMaMon(txtMaMon.getText().trim());
         ma.setTenMon(txtTenMon.getText().trim());
-        ma.setGia(Double.parseDouble(txtGia.getText().trim()));
+        ma.setGia(new java.math.BigDecimal(txtGia.getText().trim()));
         ma.setChoPhepBan(rdoConBan.isSelected());
         return ma;
     }
@@ -103,14 +103,14 @@ public class ql_mon_an extends javax.swing.JPanel {
             return;
         }
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Bạn có thực sự muốn xóa món này?", "Xác nhận xóa",
+                "Ngừng bán món này (giữ lịch sử hóa đơn)?", "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 dao.delete(maMon);
                 fillTable();
                 clearForm();
-                JOptionPane.showMessageDialog(this, "Xóa thành công!");
+                JOptionPane.showMessageDialog(this, "Đã ngừng bán!");
             } catch (Exception e) {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(this, "Xóa thất bại! Cần xóa công thức trước; không xóa được món đã có hóa đơn.");

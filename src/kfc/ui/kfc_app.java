@@ -104,7 +104,7 @@ public class kfc_app extends javax.swing.JFrame {
             int w = getWidth();
             int h = getHeight();
             if (customLogo != null) {
-                g2.drawImage(customLogo, 0, 0, w, h, null);
+                KfcImages.drawContain(g2, customLogo, 0, 0, w, h);
             } else {
                 g2.setColor(new Color(228, 0, 43));
                 g2.fillOval(2, 2, w - 4, h - 4);
@@ -139,7 +139,7 @@ public class kfc_app extends javax.swing.JFrame {
             g2.fill(new RoundRectangle2D.Float(0, 0, w, h, 24, 24));
 
             if (customBanner != null) {
-                g2.drawImage(customBanner, 12, 12, w - 24, h - 24, null);
+                KfcImages.drawContain(g2, customBanner, 12, 12, w - 24, h - 24);
                 g2.dispose();
                 return;
             }
@@ -206,22 +206,7 @@ public class kfc_app extends javax.swing.JFrame {
     }
 
     private static Image loadOptionalImage(String fileName) {
-        try {
-            URL url = kfc_app.class.getResource("/kfc/images/" + fileName);
-            if (url != null) {
-                return ImageIO.read(url);
-            }
-            File f1 = new File("src/kfc/images/" + fileName);
-            if (f1.exists()) {
-                return ImageIO.read(f1);
-            }
-            File f2 = new File("images/" + fileName);
-            if (f2.exists()) {
-                return ImageIO.read(f2);
-            }
-        } catch (Exception ignored) {
-        }
-        return null;
+        return KfcImages.asset("kfc/images/" + fileName);
     }
 
     // ===================== GIAO DIỆN (kiểu NetBeans) =====================

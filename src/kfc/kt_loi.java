@@ -29,8 +29,8 @@ public class kt_loi {
     // Bẫy lỗi giá tiền (phải là số dương)
     public static boolean checkPrice(JTextField txt) {
         try {
-            double price = Double.parseDouble(txt.getText().trim());
-            if (price <= 0) {
+            java.math.BigDecimal price = new java.math.BigDecimal(txt.getText().trim());
+            if (price.signum() <= 0 || price.scale() > 2 || price.compareTo(new java.math.BigDecimal("9999999999.99")) > 0) {
                  JOptionPane.showMessageDialog(null, "Giá tiền phải là số dương lớn hơn 0", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
                  txt.requestFocus();
                  return false;

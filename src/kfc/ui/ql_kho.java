@@ -31,7 +31,7 @@ public class ql_kho extends javax.swing.JPanel {
     }
 
     public ql_kho() {
-        PhienQuanLy.yeuCauDangNhap();
+        PhienQuanLy.yeuCauVaiTro("ADMIN","KHO");
         initComponents();
         init();
     }
@@ -182,7 +182,7 @@ public class ql_kho extends javax.swing.JPanel {
             }
         });
 
-        btnSua.setText("Sửa");
+        btnSua.setText("Sửa tên/đơn vị (không đổi tồn)");
         btnSua.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnSuaActionPerformed(evt);
