@@ -13,22 +13,21 @@ import java.time.LocalDate;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
-public class ql_hoa_don extends javax.swing.JFrame {
+public class ql_hoa_don extends javax.swing.JPanel {
 
     private DefaultTableModel model;
     private final DecimalFormat fmt = new DecimalFormat("#,##0.##");
 
     public ql_hoa_don() {
-        PhienQuanLy.yeuCauDangNhap();
+        PhienQuanLy.yeuCauVaiTro("ADMIN","THU_NGAN");
         initComponents();
         init();
     }
 
     // ===================== LOGIC =====================
     private void init() {
-        setLocationRelativeTo(null);
         txtNgay.setText(LocalDate.now().toString());
-        model = (DefaultTableModel) bang.getModel();
+        model = (DefaultTableModel) bang.getModel(); model.addColumn("Trạng thái"); model.addColumn("Thanh toán");
 
         bang.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -38,7 +37,7 @@ public class ql_hoa_don extends javax.swing.JFrame {
 
         tai();
         // Bổ sung giao diện, không sửa chức năng hóa đơn và in ấn cũ.
-        KfcTheme.apply(this, "QUẢN LÝ HÓA ĐƠN");
+        KfcTheme.apply(this);
     }
 
     private void tai() {
@@ -46,7 +45,7 @@ public class ql_hoa_don extends javax.swing.JFrame {
             LocalDate d = LocalDate.parse(txtNgay.getText().trim());
             Timestamp from = Timestamp.valueOf(d.atStartOfDay());
             Timestamp to = Timestamp.valueOf(d.plusDays(1).atStartOfDay());
-            String sql = "SELECT MaHD,NgayLap,TongTien FROM hoa_don "
+            String sql = "SELECT MaHD,NgayLap,TongTien,TrangThai,TrangThaiTT FROM hoa_don "
                     + "WHERE NgayLap >= ? AND NgayLap < ? ORDER BY NgayLap DESC,MaHD DESC";
             model.setRowCount(0);
             BigDecimal total = BigDecimal.ZERO;
@@ -56,17 +55,21 @@ public class ql_hoa_don extends javax.swing.JFrame {
                 try (ResultSet r = p.executeQuery()) {
                     while (r.next()) {
                         BigDecimal soTien = r.getBigDecimal("TongTien");
-                        total = total.add(soTien);
-                        model.addRow(new Object[]{r.getInt("MaHD"), r.getTimestamp("NgayLap"), soTien});
+                        if("DA_THANH_TOAN".equals(r.getString("TrangThaiTT")))total = total.add(soTien);
+                        model.addRow(new Object[]{r.getInt("MaHD"), r.getTimestamp("NgayLap"), soTien, r.getString("TrangThai"),r.getString("TrangThaiTT")});
                     }
                 }
             }
             lblTong.setText("Ngày " + d + "   |   Số hóa đơn: " + model.getRowCount()
-                    + "   |   Tổng tiền: " + fmt.format(total) + " đ");
+                    + "   |   Đã thu (đơn lập ngày này): " + fmt.format(total) + " đ");
             chiTiet.setText("");
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Ngày không hợp lệ hoặc lỗi CSDL: " + e.getMessage());
         }
+    }
+
+    void refreshData() {
+        tai();
     }
 
     private void hienChiTiet() {
@@ -106,14 +109,14 @@ public class ql_hoa_don extends javax.swing.JFrame {
 
         Object[] luaChon = {
             "1. Trả lại nguyên liệu về kho",
-            "2. Xóa, không trả nguyên liệu",
+            "2. Hủy, không trả nguyên liệu",
             "Hủy"
         };
 
         int chon = JOptionPane.showOptionDialog(
                 this,
-                "Bạn đang chọn xóa hóa đơn " + maIn + ".\nVui lòng chọn hình thức xử lý kho nguyên liệu:",
-                "Xác nhận xóa hóa đơn " + maIn,
+                "Bạn đang chọn hủy hóa đơn " + maIn + ".\nVui lòng chọn hình thức xử lý kho nguyên liệu:",
+                "Xác nhận hủy hóa đơn " + maIn,
                 JOptionPane.YES_NO_CANCEL_OPTION,
                 JOptionPane.QUESTION_MESSAGE,
                 null,
@@ -127,13 +130,14 @@ public class ql_hoa_don extends javax.swing.JFrame {
 
         boolean hoanKho = (chon == 0);
         try {
-            new HoaDonDAO().xoaHoaDon(maHD, hoanKho);
+            String reason=JOptionPane.showInputDialog(this,"Lý do hủy (đơn đã thanh toán: xử lý tại Đơn hàng)"); if(reason==null)return;
+            kfc.service.DonHangService.huy(maHD,hoanKho,false,reason);
             tai();
             JOptionPane.showMessageDialog(this, hoanKho
-                    ? "Đã xóa hóa đơn " + maIn + " và hoàn trả nguyên liệu về kho!"
-                    : "Đã xóa hóa đơn " + maIn + " (không hoàn trả nguyên liệu)!");
+                    ? "Đã hủy hóa đơn " + maIn + " và hoàn trả nguyên liệu về kho!"
+                    : "Đã hủy hóa đơn " + maIn + " (không hoàn trả nguyên liệu)!");
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Xóa hóa đơn thất bại: " + ex.getMessage(),
+            JOptionPane.showMessageDialog(this, "Hủy hóa đơn thất bại: " + ex.getMessage(),
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -155,9 +159,6 @@ public class ql_hoa_don extends javax.swing.JFrame {
         jScrollPane2 = new javax.swing.JScrollPane();
         chiTiet = new javax.swing.JTextArea();
         lblTong = new javax.swing.JLabel();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("KFC - Hóa đơn và doanh thu theo ngày");
 
         jLabel1.setText("Ngày (yyyy-MM-dd):");
 
@@ -185,7 +186,7 @@ public class ql_hoa_don extends javax.swing.JFrame {
         btnXoaHoaDon.setBackground(new java.awt.Color(220, 53, 69));
         btnXoaHoaDon.setFont(new java.awt.Font("Segoe UI", 1, 12));
         btnXoaHoaDon.setForeground(new java.awt.Color(255, 255, 255));
-        btnXoaHoaDon.setText("Xóa hóa đơn");
+        btnXoaHoaDon.setText("Hủy hóa đơn");
         btnXoaHoaDon.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnXoaHoaDonActionPerformed(evt);
@@ -201,7 +202,7 @@ public class ql_hoa_don extends javax.swing.JFrame {
             boolean[] canEdit = new boolean [] {false, false, false};
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
+                return false;
             }
         });
         bang.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
@@ -218,10 +219,10 @@ public class ql_hoa_don extends javax.swing.JFrame {
         jSplitPane1.setRightComponent(jScrollPane2);
 
         lblTong.setFont(new java.awt.Font("Segoe UI", 1, 17));
-        lblTong.setText("Số hóa đơn: 0  |  Tổng tiền: 0 đ");
+        lblTong.setText("Số hóa đơn: 0  |  Đã thu (đơn lập ngày này): 0 đ");
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
@@ -262,7 +263,6 @@ public class ql_hoa_don extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        pack();
     }// </editor-fold>
 
     // ===================== SỰ KIỆN =====================

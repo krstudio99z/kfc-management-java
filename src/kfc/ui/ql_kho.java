@@ -12,7 +12,7 @@ import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
-public class ql_kho extends javax.swing.JFrame {
+public class ql_kho extends javax.swing.JPanel {
 
     private final KhoDAO dao = new KhoDAO();
     private DefaultTableModel khoModel;
@@ -31,14 +31,13 @@ public class ql_kho extends javax.swing.JFrame {
     }
 
     public ql_kho() {
-        PhienQuanLy.yeuCauDangNhap();
+        PhienQuanLy.yeuCauVaiTro("ADMIN","KHO");
         initComponents();
         init();
     }
 
     // ===================== LOGIC =====================
     private void init() {
-        setLocationRelativeTo(null);
         khoModel = (DefaultTableModel) tbKho.getModel();
         ctModel = (DefaultTableModel) tbCt.getModel();
 
@@ -68,7 +67,7 @@ public class ql_kho extends javax.swing.JFrame {
 
         taiDuLieu();
         // Bổ sung giao diện, không sửa quản lý tồn kho và công thức cũ.
-        KfcTheme.apply(this, "QUẢN LÝ KHO");
+        KfcTheme.apply(this);
     }
 
     private NguyenLieu layNguyenLieu() {
@@ -113,6 +112,10 @@ public class ql_kho extends javax.swing.JFrame {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Không tải được kho: " + e.getMessage());
         }
+    }
+
+    void refreshData() {
+        taiDuLieu();
     }
 
     private void taiCongThuc() {
@@ -163,9 +166,6 @@ public class ql_kho extends javax.swing.JFrame {
         jScrollPane2 = new javax.swing.JScrollPane();
         tbCt = new javax.swing.JTable();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("KFC - Quản lý kho và công thức món ăn");
-
         jSplitPane1.setResizeWeight(0.52);
 
         pnlKho.setBorder(javax.swing.BorderFactory.createTitledBorder("QUẢN LÝ TỒN KHO"));
@@ -182,7 +182,7 @@ public class ql_kho extends javax.swing.JFrame {
             }
         });
 
-        btnSua.setText("Sửa");
+        btnSua.setText("Sửa tên/đơn vị (không đổi tồn)");
         btnSua.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnSuaActionPerformed(evt);
@@ -389,8 +389,8 @@ public class ql_kho extends javax.swing.JFrame {
 
         jSplitPane1.setRightComponent(pnlCongThuc);
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
@@ -406,7 +406,6 @@ public class ql_kho extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        pack();
     }// </editor-fold>
 
     // ===================== SỰ KIỆN =====================

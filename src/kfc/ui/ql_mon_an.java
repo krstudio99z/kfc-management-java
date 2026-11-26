@@ -12,27 +12,26 @@ import javax.swing.table.TableRowSorter;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class ql_mon_an extends javax.swing.JFrame {
+public class ql_mon_an extends javax.swing.JPanel {
 
     private final truy_cap dao = new truy_cap();
     private DefaultTableModel tableModel;
     private TableRowSorter<DefaultTableModel> sorter;
 
     public ql_mon_an() {
-        PhienQuanLy.yeuCauDangNhap();
+        PhienQuanLy.yeuCauVaiTro("ADMIN");
         initComponents();
         init();
     }
 
     // ===================== LOGIC =====================
     private void init() {
-        setLocationRelativeTo(null);
         tableModel = (DefaultTableModel) tblMonAn.getModel();
         sorter = new TableRowSorter<>(tableModel);
         tblMonAn.setRowSorter(sorter);
         fillTable();
         // Bổ sung giao diện, không sửa xử lý CRUD cũ.
-        KfcTheme.apply(this, "QUẢN LÝ MÓN ĂN");
+        KfcTheme.apply(this);
     }
 
     private void fillTable() {
@@ -53,11 +52,15 @@ public class ql_mon_an extends javax.swing.JFrame {
         }
     }
 
+    void refreshData() {
+        fillTable();
+    }
+
     private mon_an getForm() {
         mon_an ma = new mon_an();
         ma.setMaMon(txtMaMon.getText().trim());
         ma.setTenMon(txtTenMon.getText().trim());
-        ma.setGia(Double.parseDouble(txtGia.getText().trim()));
+        ma.setGia(new java.math.BigDecimal(txtGia.getText().trim()));
         ma.setChoPhepBan(rdoConBan.isSelected());
         return ma;
     }
@@ -100,14 +103,14 @@ public class ql_mon_an extends javax.swing.JFrame {
             return;
         }
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Bạn có thực sự muốn xóa món này?", "Xác nhận xóa",
+                "Ngừng bán món này (giữ lịch sử hóa đơn)?", "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 dao.delete(maMon);
                 fillTable();
                 clearForm();
-                JOptionPane.showMessageDialog(this, "Xóa thành công!");
+                JOptionPane.showMessageDialog(this, "Đã ngừng bán!");
             } catch (Exception e) {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(this, "Xóa thất bại! Cần xóa công thức trước; không xóa được món đã có hóa đơn.");
@@ -171,9 +174,6 @@ public class ql_mon_an extends javax.swing.JFrame {
         btnMoi = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         tblMonAn = new javax.swing.JTable();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("Quản Lý Món Ăn - KFC");
 
         jLabel1.setText("Mã món:");
         jLabel2.setText("Tên món:");
@@ -240,8 +240,8 @@ public class ql_mon_an extends javax.swing.JFrame {
         });
         jScrollPane1.setViewportView(tblMonAn);
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
@@ -312,7 +312,6 @@ public class ql_mon_an extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        pack();
     }// </editor-fold>
 
     // ===================== SỰ KIỆN =====================

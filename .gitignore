@@ -1,0 +1,18 @@
+# NetBeans
+/build/
+/dist/
+/nbproject/private/
+
+# Java
+*.class
+
+# Database configuration
+/config.properties
+
+# IDE
+.idea/
+.vscode/
+
+# Temporary files
+*.log
+*.tmp

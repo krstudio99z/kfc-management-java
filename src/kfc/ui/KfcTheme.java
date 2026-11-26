@@ -73,6 +73,16 @@ public final class KfcTheme {
         frame.setLocationRelativeTo(null);
     }
 
+    public static void apply(JPanel body) {
+        if (Boolean.TRUE.equals(body.getClientProperty("kfc.theming"))) {
+            return;
+        }
+        body.putClientProperty("kfc.theming", Boolean.TRUE);
+        styleTree(body);
+        body.setBackground(BACKGROUND);
+        body.setBorder(new EmptyBorder(20, 22, 20, 22));
+    }
+
     private static JComponent createHeader(String title) {
         JPanel panel = new JPanel(new BorderLayout(16, 0));
         panel.setBackground(SURFACE);

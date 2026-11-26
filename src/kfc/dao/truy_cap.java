@@ -12,12 +12,13 @@ import java.util.List;
 
 public class truy_cap {
     public void insert(mon_an m) {
+        kfc.service.PhienQuanLy.yeuCauVaiTro("ADMIN");
         try {
             KhoService.giaoDich(c -> {
                 try (PreparedStatement p = c.prepareStatement(
                         "INSERT INTO monan(MaMon,TenMon,Gia,TrangThai,ChoPhepBan) VALUES(?,?,?,0,?)")) {
                     p.setString(1, m.getMaMon()); p.setString(2, m.getTenMon());
-                    p.setDouble(3, m.getGia()); p.setBoolean(4, m.isChoPhepBan());
+                    p.setBigDecimal(3, m.getGia()); p.setBoolean(4, m.isChoPhepBan());
                     p.executeUpdate();
                 }
             });
@@ -25,11 +26,12 @@ public class truy_cap {
     }
 
     public void update(mon_an m) {
+        kfc.service.PhienQuanLy.yeuCauVaiTro("ADMIN");
         try {
             KhoService.giaoDich(c -> {
                 try (PreparedStatement p = c.prepareStatement(
                         "UPDATE monan SET TenMon=?,Gia=?,ChoPhepBan=? WHERE MaMon=?")) {
-                    p.setString(1, m.getTenMon()); p.setDouble(2, m.getGia());
+                    p.setString(1, m.getTenMon()); p.setBigDecimal(2, m.getGia());
                     p.setBoolean(3, m.isChoPhepBan()); p.setString(4, m.getMaMon());
                     if (p.executeUpdate() == 0) throw new SQLException("Món ăn không tồn tại");
                 }
@@ -38,9 +40,10 @@ public class truy_cap {
     }
 
     public void delete(String id) {
+        kfc.service.PhienQuanLy.yeuCauVaiTro("ADMIN");
         try {
             KhoService.giaoDich(c -> {
-                try (PreparedStatement p = c.prepareStatement("DELETE FROM monan WHERE MaMon=?")) {
+                try (PreparedStatement p = c.prepareStatement("UPDATE monan SET ChoPhepBan=0 WHERE MaMon=?")) {
                     p.setString(1, id);
                     p.executeUpdate();
                 }
@@ -56,7 +59,7 @@ public class truy_cap {
                 while (r.next()) {
                     mon_an m = new mon_an();
                     m.setMaMon(r.getString("MaMon")); m.setTenMon(r.getString("TenMon"));
-                    m.setGia(r.getDouble("Gia")); m.setTrangThai(r.getBoolean("TrangThai"));
+                    m.setGia(r.getBigDecimal("Gia")); m.setDanhMuc(r.getString("DanhMuc")); m.setHinhAnh(r.getString("HinhAnh")); m.setTrangThai(r.getBoolean("TrangThai"));
                     m.setChoPhepBan(r.getBoolean("ChoPhepBan"));
                     list.add(m);
                 }
