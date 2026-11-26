@@ -1,5 +1,19 @@
-/config.properties
-/data/images/
+# NetBeans
 /build/
 /dist/
 /nbproject/private/
+
+# Java
+*.class
+
+# Database configuration & Data
+/config.properties
+/data/images/
+
+# IDE
+.idea/
+.vscode/
+
+# Temporary files
+*.log
+*.tmp

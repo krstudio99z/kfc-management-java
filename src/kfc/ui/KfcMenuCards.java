@@ -49,7 +49,11 @@ public final class KfcMenuCards {
     private final Runnable onAdd;
     private final DecimalFormat money = new DecimalFormat("#,##0.##");
     private final ScrollPanel cards = new ScrollPanel();
+<<<<<<< HEAD
+    
+=======
 
+>>>>>>> adb2e54a2c7f581652b2a36de002563764572d9a
     private final JComboBox<String> categories = new JComboBox<>(new String[]{
         "Tất cả món", "Combo", "Gà rán", "Burger", "Món kèm", "Nước uống", "Tráng miệng"
     });

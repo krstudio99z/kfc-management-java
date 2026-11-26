@@ -35,7 +35,11 @@ public class TaiKhoanDAO {
                 if (stored == null) return false;
                 vaiTro = r.getString(2);
                 if (stored.startsWith("pbkdf2$")) return kiemTraHash(matKhau, stored);
+<<<<<<< HEAD
+                return false; // Không chấp nhận mật khẩu plaintext. Reset qua quản trị. 
+=======
                 return false; // Không chấp nhận mật khẩu plaintext. Reset qua quản trị.
+>>>>>>> adb2e54a2c7f581652b2a36de002563764572d9a
             }
         }
     }
